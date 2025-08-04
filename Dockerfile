@@ -41,7 +41,7 @@ COPY --from=builder /workspace/manager .
 ENTRYPOINT ["/manager"]
 
 # Copy the delve debugger into a debug image
-FROM ubuntu:noble as debug
+FROM ubuntu:24.10 as debug
 WORKDIR /
 RUN apt-get update && apt-get install -y tcpdump net-tools iputils-ping iproute2
 COPY --from=dlvbuilder /go/bin/dlv /
