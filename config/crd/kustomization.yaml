@@ -47,6 +47,16 @@ patchesStrategicMerge:
 - patches/stx_in_ptpinterfaces.yaml
 - patches/stx_in_systems.yaml
 
+# Helm resource policy to prevent CRD deletion during upgrades
+- patches/helm_resource_policy_in_addresspools.yaml
+- patches/helm_resource_policy_in_datanetworks.yaml
+- patches/helm_resource_policy_in_hostprofiles.yaml
+- patches/helm_resource_policy_in_hosts.yaml
+- patches/helm_resource_policy_in_platformnetworks.yaml
+- patches/helm_resource_policy_in_ptpinstances.yaml
+- patches/helm_resource_policy_in_ptpinterfaces.yaml
+- patches/helm_resource_policy_in_systems.yaml
+
 # the following config is for teaching kustomize how to do kustomization for CRDs.
 configurations:
 - kustomizeconfig.yaml

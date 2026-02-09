@@ -4,6 +4,7 @@ metadata:
   annotations:
     cert-manager.io/inject-ca-from: {{ .Values.namespace }}/{{ .Values.namespace }}-serving-cert
     controller-gen.kubebuilder.io/version: v0.15.0
+    helm.sh/resource-policy: keep
   name: addresspools.starlingx.windriver.com
 spec:
   conversion:
@@ -164,6 +165,7 @@ metadata:
   annotations:
     cert-manager.io/inject-ca-from: {{ .Values.namespace }}/{{ .Values.namespace }}-serving-cert
     controller-gen.kubebuilder.io/version: v0.15.0
+    helm.sh/resource-policy: keep
   name: datanetworks.starlingx.windriver.com
 spec:
   conversion:
@@ -347,6 +349,7 @@ metadata:
   annotations:
     cert-manager.io/inject-ca-from: {{ .Values.namespace }}/{{ .Values.namespace }}-serving-cert
     controller-gen.kubebuilder.io/version: v0.15.0
+    helm.sh/resource-policy: keep
   name: hostprofiles.starlingx.windriver.com
 spec:
   conversion:
@@ -1439,6 +1442,7 @@ metadata:
   annotations:
     cert-manager.io/inject-ca-from: {{ .Values.namespace }}/{{ .Values.namespace }}-serving-cert
     controller-gen.kubebuilder.io/version: v0.15.0
+    helm.sh/resource-policy: keep
   name: hosts.starlingx.windriver.com
 spec:
   conversion:
@@ -2706,6 +2710,7 @@ metadata:
   annotations:
     cert-manager.io/inject-ca-from: {{ .Values.namespace }}/{{ .Values.namespace }}-serving-cert
     controller-gen.kubebuilder.io/version: v0.15.0
+    helm.sh/resource-policy: keep
   name: platformnetworks.starlingx.windriver.com
 spec:
   conversion:
@@ -2860,6 +2865,7 @@ metadata:
   annotations:
     cert-manager.io/inject-ca-from: {{ .Values.namespace }}/{{ .Values.namespace }}-serving-cert
     controller-gen.kubebuilder.io/version: v0.15.0
+    helm.sh/resource-policy: keep
   name: ptpinstances.starlingx.windriver.com
 spec:
   conversion:
@@ -3001,6 +3007,7 @@ metadata:
   annotations:
     cert-manager.io/inject-ca-from: {{ .Values.namespace }}/{{ .Values.namespace }}-serving-cert
     controller-gen.kubebuilder.io/version: v0.15.0
+    helm.sh/resource-policy: keep
   name: ptpinterfaces.starlingx.windriver.com
 spec:
   conversion:
@@ -3135,6 +3142,7 @@ metadata:
   annotations:
     cert-manager.io/inject-ca-from: {{ .Values.namespace }}/{{ .Values.namespace }}-serving-cert
     controller-gen.kubebuilder.io/version: v0.15.0
+    helm.sh/resource-policy: keep
   name: systems.starlingx.windriver.com
 spec:
   conversion:
