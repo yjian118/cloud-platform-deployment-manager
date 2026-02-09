@@ -86,7 +86,7 @@ var _ = Describe("PtpInstance controller", func() {
 				    }
 				}`
 				expected := map[string][]string{
-					"global": {"param1", "param2", "param3"},
+					"global":                 {"param1", "param2", "param3"},
 					"unicast_master_table_x": {"param1", "param2"},
 				}
 
