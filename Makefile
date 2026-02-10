@@ -156,7 +156,7 @@ DEEPEQUAL_GEN ?= $(LOCALBIN)/deepequal-gen
 ## Tool Versions
 KUSTOMIZE_VERSION ?= v3.8.7
 CONTROLLER_TOOLS_VERSION ?= v0.15.0
-SETPUP_ENVTEST_VERSION ?= release-0.16
+SETPUP_ENVTEST_VERSION ?= release-0.20
 
 KUSTOMIZE_INSTALL_SCRIPT ?= "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"
 
