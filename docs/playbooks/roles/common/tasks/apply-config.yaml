@@ -10,19 +10,30 @@
     distributed_cloud_role == "subcloud" or
     distributed_cloud_role == ""
 
-- name: Apply deployment configuration file
-  shell: kubectl apply -f {{ deploy_config }}
-  environment:
-    KUBECONFIG: "/etc/kubernetes/admin.conf"
-  register: apply_deploy_config
-  retries: 5
-  delay: 10
-  until: apply_deploy_config.rc == 0
-  failed_when: false
+- name: Apply deployment configuration with retries
+  block:
+    - name: Apply deployment configuration file
+      shell: kubectl apply -f {{ deploy_config }}
+      environment:
+        KUBECONFIG: "/etc/kubernetes/admin.conf"
+      register: apply_deploy_config
 
-- name: Fail if deploy configuration failed to apply
-  fail:
-    msg: >
-      stderr is: {{ apply_deploy_config.stderr }}
-      stdout is: {{ apply_deploy_config.stdout }}
-  when: apply_deploy_config.rc != 0
+  rescue:
+    - name: Retry apply deployment configuration
+      shell: kubectl apply -f {{ deploy_config }}
+      environment:
+        KUBECONFIG: "/etc/kubernetes/admin.conf"
+      register: apply_deploy_config
+      retries: 3
+      delay: 10
+      until: apply_deploy_config.rc == 0
+      failed_when: false
+
+    - name: Fail if all retries exhausted
+      fail:
+        msg:
+          - "Failed to apply deployment configuration after
+            {{ apply_deploy_config.attempts + 2 }} attempts."
+          - "stderr: {{ apply_deploy_config.stderr }}"
+          - "stdout: {{ apply_deploy_config.stdout }}"
+      when: apply_deploy_config.rc != 0

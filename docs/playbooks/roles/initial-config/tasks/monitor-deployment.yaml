@@ -92,9 +92,9 @@
   failed_when: false
 
 - debug:
-    msg: >
-      stderr is: {{ unreconciled.stderr }}
-      stdout is: {{ unreconciled.stdout }}
+    msg:
+      - "stderr is: {{ unreconciled.stderr }}"
+      - "stdout is: {{ unreconciled.stdout }}"
 
 - name: Get DM pod error logs
   shell: >-
