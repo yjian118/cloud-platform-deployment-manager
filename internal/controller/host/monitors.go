@@ -274,6 +274,11 @@ func (m *storageTierMonitor) Run(client *gophercloud.ServiceClient) (stop bool, 
 // attempts to check whether a host has reached the desired state.
 const DefaultStateMonitorInterval = 30 * time.Second
 
+// DefaultOutOfServiceRecheckInterval represents the default interval after
+// which a reconciler waiting for a host to be locked re-evaluates whether a
+// lock is still required.  See NewOutOfServiceAttributesMonitor.
+const DefaultOutOfServiceRecheckInterval = 5 * time.Minute
+
 // stateMonitor waits for a host to reach a desired state.  Once the host has
 // reached the desired state a reconcilable event is generated to kick the
 // reconciler.
@@ -283,6 +288,37 @@ type stateMonitor struct {
 	administrativeState *string
 	availabilityStatus  *string
 	operationalStatus   *string
+
+	// recheckAfter, when set, also generates a reconcilable event once this
+	// much time has elapsed without the desired state being reached so that
+	// the reconciler can re-evaluate whether it still needs to wait.
+	recheckAfter time.Duration
+
+	// startedAt records the time of the first polling attempt.
+	startedAt time.Time
+
+	// now returns the current time; it can be replaced by tests.
+	now func() time.Time
+}
+
+// recheckDue returns true if the monitor has been waiting longer than its
+// recheck interval.
+func (m *stateMonitor) recheckDue() bool {
+	if m.recheckAfter <= 0 {
+		return false
+	}
+
+	now := time.Now
+	if m.now != nil {
+		now = m.now
+	}
+
+	if m.startedAt.IsZero() {
+		m.startedAt = now()
+		return false
+	}
+
+	return now().Sub(m.startedAt) >= m.recheckAfter
 }
 
 func (m *stateMonitor) idleOnly() bool {
@@ -355,6 +391,23 @@ func NewLockedDisabledHostMonitor(instance *starlingxv1.Host, id string) *manage
 	return NewStateMonitor(instance, id, &admin, &oper, nil)
 }
 
+// NewOutOfServiceAttributesMonitor is used when an unlocked host has
+// attributes that can only be applied while it is locked.  Like
+// NewLockedDisabledHostMonitor it triggers the reconciler as soon as the host
+// is locked/disabled, but it also triggers it periodically so that the
+// difference is re-evaluated.
+//
+// Right after an unlock the system may still report the previous values of
+// some out-of-service attributes for a short period.  Without a periodic
+// re-evaluation the reconciler would wait for a lock that never comes and the
+// host would not be marked as reconciled until the next resync of the
+// controller.
+func NewOutOfServiceAttributesMonitor(instance *starlingxv1.Host, id string) *manager.Monitor {
+	m := NewLockedDisabledHostMonitor(instance, id)
+	m.MonitorBody.(*stateMonitor).recheckAfter = DefaultOutOfServiceRecheckInterval
+	return m
+}
+
 // Run implements the MonitorBody interface Run method which is responsible
 // for monitor one or more resources and returning true when all conditions
 // are satisfied.
@@ -392,6 +445,12 @@ func (m *stateMonitor) Run(client *gophercloud.ServiceClient) (stop bool, err er
 	stop = true
 
 done:
+	if !stop && m.recheckDue() {
+		m.SetState("re-evaluating after %s; still waiting for state: %s; current: %s",
+			m.recheckAfter, m.desiredState(), state)
+		return true, nil
+	}
+
 	if stop {
 		m.SetState("desired state has been reached: %s", m.desiredState())
 	} else if m.idleOnly() {

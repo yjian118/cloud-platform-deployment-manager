@@ -1262,9 +1262,13 @@ func (r *HostReconciler) ReconcileHostByState(
 				}
 			}
 
+			// The difference may only be transient (e.g., the system has not
+			// yet reported the new values right after an unlock) so the
+			// monitor also re-evaluates periodically instead of only waiting
+			// for a lock that may never come.
 			msg := "waiting for locked state before applying out-of-service attributes"
 			r.NormalEvent(instance, common.ResourceDependency, msg)
-			m := NewLockedDisabledHostMonitor(instance, host.ID)
+			m := NewOutOfServiceAttributesMonitor(instance, host.ID)
 			return r.StartMonitor(m, msg)
 		}
 
