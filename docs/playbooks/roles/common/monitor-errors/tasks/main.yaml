@@ -3,10 +3,26 @@
 # Copyright(c) 2026 Wind River Systems, Inc.
 #
 # Reports the requests that failed on the system API since the deployment
-# configuration was applied, see files/dm-monitor-errors.sh.
+# configuration was applied, see files/dm-monitor-errors.sh. Sets
+# system_api_failures to the result of the script.
+#
+# The other entry points of this role, all using the same staged script:
+#   stage.yaml    copies the script to the host
+#   start.yaml    starts collecting the failures in the background
+#   stop.yaml     stops the collector and shows what it collected
+#   cleanup.yaml  removes the script and the collected failures from the host
+- name: Stage the errors monitor script
+  include_tasks:
+    file: stage.yaml
+    apply:
+      # Informational only: never fail the deployment because the script
+      # cannot be staged (e.g. the host is unreachable).
+      ignore_errors: true
+      ignore_unreachable: true
+
 - name: Get errors from deployment manager
-  script: >-
-    dm-monitor-errors.sh
+  command: >-
+    {{ dm_monitor_errors_dir | quote }}/dm-monitor-errors.sh
     {{ pod_namespace | quote }}
     {{ start_monitor_at | default('') | quote }}
   register: system_api_failures
@@ -15,6 +31,7 @@
   # be read (e.g. the kube-apiserver is unreachable).
   failed_when: false
   ignore_unreachable: true
+  when: dm_monitor_errors_staged | default(false) | bool
 
 - name: Show errors from deployment manager
   debug:
@@ -25,5 +42,6 @@
   debug:
     msg: >-
       Could not read the errors from the deployment manager:
-      {{ system_api_failures.stderr | default(system_api_failures.msg) | default('') }}
+      {{ system_api_failures.stderr | default(system_api_failures.msg)
+         | default('the errors monitor script is not staged') }}
   when: system_api_failures.rc | default(1) != 0

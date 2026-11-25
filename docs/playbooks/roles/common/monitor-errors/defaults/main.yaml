@@ -1,0 +1,15 @@
+---
+# SPDX-License-Identifier: Apache-2.0
+# Copyright(c) 2026 Wind River Systems, Inc.
+
+# Settings of the background collector, see tasks/start.yaml.
+
+# How long the collector waits before reporting any failure, e.g. while some
+# failures are expected.
+dm_monitor_errors_delay: 0
+
+# How often the collector checks the failures.
+dm_monitor_errors_interval: 20
+
+# How long the collector runs at most, if it is not stopped before.
+dm_monitor_errors_timeout: 1200

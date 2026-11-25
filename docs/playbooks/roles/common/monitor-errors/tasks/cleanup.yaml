@@ -1,0 +1,41 @@
+---
+# SPDX-License-Identifier: Apache-2.0
+# Copyright(c) 2026 Wind River Systems, Inc.
+#
+# Ends a monitoring session: stops the collector if it is still running and
+# shows what it collected (see stop.yaml), removes the script and the
+# collected errors from the host (see stage.yaml), and resets start_monitor_at
+# so that the failures seen so far are not reported again. Run it whether the
+# monitored step succeeded or not, e.g. from an always block. The other task
+# files stage the script again if it is needed afterwards.
+- name: Stop the errors monitor
+  include_tasks: stop.yaml
+  when: dm_monitor_errors_running | default(false) | bool
+
+# Never fail here: cleaning up must not hide the failure being reported, and
+# the host may be unreachable if it is rebooting right now.
+- name: Remove the errors monitor script and collected errors from the host
+  file:
+    path: "{{ dm_monitor_errors_dir }}"
+    state: absent
+  failed_when: false
+  ignore_unreachable: true
+  when: dm_monitor_errors_staged | default(false) | bool
+
+- set_fact:
+    dm_monitor_errors_staged: false
+
+# Taken on the host, in the format of the Kubernetes event timestamps, like in
+# roles/common/apply-config. A failure that is still repeated is still
+# reported: its event is updated with the time it was last seen.
+- name: Get the time the errors monitor was cleaned up
+  command: date -u +%Y-%m-%dT%H:%M:%SZ
+  register: dm_monitor_errors_cleanup_date
+  changed_when: false
+  failed_when: false
+  ignore_unreachable: true
+
+- name: Reset the error monitor start time
+  set_fact:
+    start_monitor_at: "{{ dm_monitor_errors_cleanup_date.stdout }}"
+  when: dm_monitor_errors_cleanup_date.rc | default(1) == 0

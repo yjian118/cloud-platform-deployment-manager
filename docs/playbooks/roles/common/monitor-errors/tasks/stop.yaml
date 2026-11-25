@@ -1,0 +1,46 @@
+---
+# SPDX-License-Identifier: Apache-2.0
+# Copyright(c) 2026 Wind River Systems, Inc.
+#
+# Stops the collector started by start.yaml, and shows what it collected. Sets
+# dm_monitor_errors_collected to the result of reading its log.
+#
+# The log is kept on the host, in dm_monitor_errors_log, until cleanup.yaml
+# runs.
+- name: Stop monitoring the errors
+  shell: |
+    pidfile={{ (dm_monitor_errors_log ~ '.pid') | quote }}
+    if [ -f "${pidfile}" ]; then
+      pid=$(cat "${pidfile}")
+      # The pid file survives a reboot, so make sure the pid is still the
+      # collector and not an unrelated process that reused it.
+      if tr '\0' ' ' <"/proc/${pid}/cmdline" 2>/dev/null |
+          grep -q 'dm-monitor-errors.sh --watch'; then
+        kill "${pid}" 2>/dev/null
+      fi
+      rm -f "${pidfile}"
+    fi
+  changed_when: false
+  # The collector is gone after a reboot, and the host may be unreachable if
+  # it is rebooting right now.
+  failed_when: false
+  ignore_unreachable: true
+  when: dm_monitor_errors_staged | default(false) | bool
+
+# Empty unless the collector had something to report, e.g. when the task being
+# monitored completed before the first check.
+- name: Get the errors collected in the background
+  command: cat {{ dm_monitor_errors_log | quote }}
+  register: dm_monitor_errors_collected
+  changed_when: false
+  failed_when: false
+  ignore_unreachable: true
+  when: dm_monitor_errors_staged | default(false) | bool
+
+- name: Show the errors collected in the background
+  debug:
+    msg: "{{ dm_monitor_errors_collected.stdout_lines }}"
+  when: dm_monitor_errors_collected.stdout | default('') != ''
+
+- set_fact:
+    dm_monitor_errors_running: false

@@ -1,0 +1,51 @@
+---
+# SPDX-License-Identifier: Apache-2.0
+# Copyright(c) 2026 Wind River Systems, Inc.
+#
+# Copies the script of this role to the host, once: nothing is done if it is
+# already staged. Sets:
+#   dm_monitor_errors_dir  the directory of the script
+#   dm_monitor_errors_log  the log of the background collector
+#
+# The other task files stage the script if needed, but the deployment manager
+# can unlock the host as soon as the deployment configuration is applied, and
+# copying a file to a host that is already going down fails. Stage the script
+# before applying the configuration instead, and remove them once the
+# deployment is complete:
+#
+#   - include_role:
+#       name: common/monitor-errors
+#       tasks_from: stage
+#   ...
+#   - include_role:
+#       name: common/monitor-errors
+#       tasks_from: cleanup
+- name: Stage the errors monitor script
+  when: not (dm_monitor_errors_staged | default(false) | bool)
+  block:
+    # Not in /tmp: the collected failures are reported once the host is back,
+    # and /tmp is a tmpfs that the unlock reboot wipes. The home directory of
+    # the ansible user is on a persistent filesystem and is writable without
+    # become, unlike /var/log (root:root 0750).
+    - name: Create a temporary directory for the errors monitor script
+      tempfile:
+        state: directory
+        # Keep the quotes: a bare ~ is null in YAML, so the directory would be
+        # created in /tmp and lost in the reboot.
+        path: "~"
+        prefix: dm-monitor-errors.
+      register: dm_monitor_errors_tempdir
+
+    - set_fact:
+        dm_monitor_errors_dir: "{{ dm_monitor_errors_tempdir.path }}"
+        dm_monitor_errors_log: >-
+          {{ dm_monitor_errors_tempdir.path }}/dm-monitor-errors.log
+
+    - name: Copy the errors monitor script to the host
+      copy:
+        src: dm-monitor-errors.sh
+        dest: "{{ dm_monitor_errors_dir }}/dm-monitor-errors.sh"
+        mode: "0755"
+
+    - set_fact:
+        dm_monitor_errors_staged: true

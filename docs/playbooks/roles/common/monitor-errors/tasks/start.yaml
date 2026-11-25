@@ -1,0 +1,50 @@
+---
+# SPDX-License-Identifier: Apache-2.0
+# Copyright(c) 2026 Wind River Systems, Inc.
+#
+# Starts collecting the requests that failed on the system API in the
+# background, see the --watch mode of files/dm-monitor-errors.sh. Use it before
+# a task that blocks and cannot report anything while it runs, and stop the
+# collector with stop.yaml once the task is over. The collector is tuned
+# through the variables in defaults/main.yaml.
+- name: Stage the errors monitor script
+  include_tasks:
+    file: stage.yaml
+    apply:
+      # Informational only: never fail the deployment because the script
+      # cannot be staged (e.g. the host is already going down).
+      ignore_errors: true
+      ignore_unreachable: true
+
+- name: Start monitoring the errors in the background
+  command: >-
+    {{ dm_monitor_errors_dir | quote }}/dm-monitor-errors.sh --watch
+    {{ dm_monitor_errors_delay | quote }}
+    {{ dm_monitor_errors_interval | quote }}
+    {{ dm_monitor_errors_log | quote }}
+    {{ pod_namespace | quote }}
+    {{ start_monitor_at | default('') | quote }}
+  # Detached: the playbook does not wait for the collector, and the async
+  # timeout stops it in case it is never stopped.
+  async: >-
+    {{ (dm_monitor_errors_timeout | int)
+       + (dm_monitor_errors_interval | int) }}
+  poll: 0
+  register: dm_monitor_errors_service
+  changed_when: false
+  # The host may already be going down, e.g. if the unlock was accepted right
+  # away. The task being monitored matters more than collecting diagnostics.
+  failed_when: false
+  ignore_unreachable: true
+  when: dm_monitor_errors_staged | default(false) | bool
+
+- set_fact:
+    dm_monitor_errors_running: >-
+      {{ dm_monitor_errors_service.started | default(0) | int == 1 }}
+
+- name: Show that the errors are not monitored
+  debug:
+    msg: >-
+      Could not start the errors monitor, no failure will be collected:
+      {{ dm_monitor_errors_service.msg | default('see the tasks above') }}
+  when: not (dm_monitor_errors_running | bool)
