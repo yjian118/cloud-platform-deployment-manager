@@ -438,6 +438,59 @@ docker push ${MY_REGISTRY}/wind-river/cloud-platform-deployment-manager:latest
 docker push ${MY_REGISTRY}/wind-river/cloud-platform-deployment-manager:debug
 ```
 
+## Logging and error handling
+Every controller reports the errors of its reconciliation through the common
+`ErrorHandler` (`internal/controller/common/common.go`), which decides how an
+error is logged and when it is retried.
+
+A request rejected or failed by the StarlingX system API is an expected
+outcome, not a bug of the deployment manager.  The platform client returns it as
+a `starlingx.FaultError` (gophercloud), and the handler converts it to an
+`ErrSystemAPI` with the reason sent by the server, the operation and the status
+code.  The handler then:
+
+* logs it at the informational level, with only the reason, the operation and
+  the status code, and not at the error level with the response body and a
+  stack trace.  Keep it that way: the log must not be flooded with stack traces
+  for failures that are retried.
+* records it as a Warning event with `SystemAPIEvents`
+  (`internal/controller/common/systemapi_events.go`).
+* returns the retry policy of the failure: a retry after 20 seconds for a
+  transient failure (status 0, 408, 429), and after a minute for a server
+  error (5xx) and for a request rejected by the user configuration (4xx).
+
+The events are recorded on the platform-deployment-manager Deployment and not
+on the reconciled resource or on the Pod.  They are therefore all in one place,
+and survive the Pod being replaced by the unlock of the host, where the Pod log
+is lost.  The namespace is read from the service account mounted in the Pod
+(or from `POD_NAMESPACE`), so the chart needs no change.  The reason is one of
+`SystemAPIRejected`, `SystemAPITransient` and `SystemAPIServerError`, and the
+message starts with the kind, namespace and name of the resource.  The event
+correlator is tuned so that unrelated failures, which all share the Deployment,
+are neither rate limited together nor combined: a failure is identified by its
+reason and message, and one that repeats on every retry is folded by Kubernetes
+into a single event with a count.
+
+To record the failures of a new controller, set `Events` and `Kind` when
+creating its `ErrorHandler`:
+
+```go
+r.ReconcilerErrorHandler = &common.ErrorHandler{
+	CloudManager: tMgr,
+	Logger:       logHost.Logger,
+	Events:       common.GetSystemAPIEvents(mgr),
+	Kind:         "Host",
+}
+```
+
+`Events` is nil if the namespace is unknown, and no event is recorded then.
+
+The playbook reads the events with the `common/monitor-errors` role
+(`docs/playbooks/roles/common/monitor-errors`), whose `dm-monitor-errors.sh`
+prints them, and falls back to the `ERROR` lines of the Pod log with a
+deployment manager that does not record them.  Change the reasons or the format
+of the message together with that script.
+
 ## Run golangci-lint locally
 The project is already integrated golangci-lint and go test with GitHub Action.
 In case the golangci-lint check fails, if the Github Action logs are not clear

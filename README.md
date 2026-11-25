@@ -666,6 +666,21 @@ the time of writing this document those values are "1", "t", "T", "true",
   OS_DEBUG: true
 ```
 
+### System API failures
+A request that the StarlingX system API rejects or fails is expected while a
+configuration is being applied, so the Deployment Manager retries it and logs
+it at the informational level, with the reason reported by the server, rather
+than as an error.  Each failure is also recorded as a Warning event on the
+`platform-deployment-manager` Deployment, with the reason `SystemAPIRejected`,
+`SystemAPITransient` or `SystemAPIServerError`, which can be listed with:
+
+```bash
+kubectl -n platform-deployment-manager get events \
+    --field-selector type=Warning,involvedObject.kind=Deployment
+```
+
+See [DEBUGGING.md](DEBUGGING.md) for details.
+
 ## Building The Deployment Manager Image
 
 The Deployment Manager Docker Image is not currently posted on any public Docker
@@ -889,6 +904,13 @@ playbooks please refer to the Ansible documentation.
 ```bash
 $ ansible-playbook docs/playbooks/wind-river-cloud-platform-deployment-manager-playbook.yaml -e "deployment_manager_chart==/some/other/path/wind-river-cloud-platform-deployment-manager-26.10.0.tgz" -e @ansible-overrides.yaml
 ```
+
+On a subcloud, and when a subcloud is re-configured after enrollment, the
+playbook waits for the unlock reboot and for the resources to be reconciled when
+the deployment configuration unlocks the host.  If the host does not
+reboot or the resources are not reconciled in time, the playbook fails and
+reports the requests that failed on the system API, which are the Warning events
+recorded by the Deployment Manager, see [DEBUGGING.md](DEBUGGING.md).
 
 The system deployment configuration file must be specified using the
 ```deployment_config``` variable.  If this variable is not set the playbook will

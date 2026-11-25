@@ -191,7 +191,7 @@ type ErrorHandler struct {
 
 	// Events and Kind are optional.  When Events is set, a failed system API
 	// request is also recorded as a Warning event on the deployment manager
-	// pod, see SystemAPIEvents.  Kind is the kind of the reconciled resource,
+	// deployment, see SystemAPIEvents.  Kind is the kind of the reconciled resource,
 	// which is part of the event message.
 	Events *SystemAPIEvents
 	Kind   string

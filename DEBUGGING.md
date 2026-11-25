@@ -57,10 +57,68 @@ kubectl -n platform-deployment-manager logs deployment.apps/platform-deployment-
 
 ## Viewing event history
 Recorded events can show actions taken by deployment-manager and system events.
+The events of the resources being reconciled are in the namespace of the
+deployment configuration.
 
 ```
 kubectl -n deployment get events --sort-by='.metadata.creationTimestamp'
 ```
+
+## Finding the requests that failed on the system API
+The system API (sysinv) can reject or fail a request made by the
+deployment-manager.  This is common while a configuration is being applied, for
+example the unlock of a host is rejected until the inventory has been updated.
+The deployment-manager retries the request, and records each failure twice:
+
+* In the log, at the informational level and not at the error level, with the
+  reason reported by the server (the sysinv faultstring), the operation and the
+  HTTP status code.  The raw response body and the stack trace are not logged.
+  The message tells how the failure is retried:
+  `request rejected by system API` (4xx, the configuration must be corrected, retried after a minute),
+  `request temporarily rejected by system API` (no response, timeout or rate
+  limiting, retried after 20 seconds) and `request failed on system API server` (5xx).
+* As a Warning event on the platform-deployment-manager Deployment, whatever
+  the resource being reconciled.  The events are in the namespace of the
+  deployment-manager, not the one of the deployment configuration.
+
+The log of the Pod is lost when the Pod is replaced, e.g. when the host is
+unlocked.  The events are kept, as they are recorded on the Deployment and not
+on the Pod, so they are the best place to look for why a configuration is not
+applied:
+
+```
+kubectl -n platform-deployment-manager get events \
+    --field-selector type=Warning,involvedObject.kind=Deployment \
+    --sort-by=.lastTimestamp
+```
+
+```
+LAST SEEN   TYPE      REASON               OBJECT                                   MESSAGE
+41s         Warning   SystemAPIRejected    deployment/platform-deployment-manager   Host deployment/controller-0: failed to unlock host controller-0: Expecting number of interface sriov_numvfs=32. Please wait a few minutes for inventory update and retry host-unlock. (HTTP 400)
+```
+
+The reason of the event is one of:
+
+| Reason                 | Meaning                                                      |
+|------------------------|--------------------------------------------------------------|
+| `SystemAPIRejected`    | The request was rejected (4xx), the configuration must be corrected. |
+| `SystemAPITransient`   | No response, request timeout or rate limiting.               |
+| `SystemAPIServerError` | The request failed on the server (5xx).                      |
+
+The message starts with the kind, namespace and name of the resource being
+reconciled.  Kubernetes folds identical events into one, so a request that
+fails on every retry is shown once, with its COUNT and the time it was last
+seen.  Events are removed by Kubernetes after about an hour, and are not
+recorded if the deployment-manager cannot find its namespace (it is read from
+the service account of the Pod, or from the `POD_NAMESPACE` variable when the
+manager does not run in a Pod).
+
+The Ansible playbook reports the same events.  When the host does not reboot
+after the deployment configuration is applied, or the resources are not
+reconciled in time, it prints the failures recorded since the configuration
+was applied, and the ones collected while it was waiting for the unlock reboot.
+With a deployment-manager that does not record these events the playbook falls
+back to the `ERROR` lines of the Pod log.
 
 ## Resource cannot reconciled
 Find the resource "final profile" and "current config" in the dm log, compare the difference
