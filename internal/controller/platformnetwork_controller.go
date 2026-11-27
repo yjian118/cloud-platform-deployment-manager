@@ -14,6 +14,7 @@ import (
 	utils "github.com/wind-river/cloud-platform-deployment-manager/common"
 	"github.com/wind-river/cloud-platform-deployment-manager/internal/controller/common"
 	cloudManager "github.com/wind-river/cloud-platform-deployment-manager/internal/controller/manager"
+	"github.com/wind-river/cloud-platform-deployment-manager/logger"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -24,7 +25,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-var logPlatformNetwork = log.Log.WithName("controller").WithName("platformnetwork")
+var logPlatformNetwork = logger.New(log.Log.WithName("controller").WithName("platformnetwork"))
 
 const PlatformNetworkControllerName = "platformnetwork-controller"
 
@@ -358,13 +359,13 @@ func (r *PlatformNetworkReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	r.CloudManager = tMgr
 	r.ReconcilerErrorHandler = &common.ErrorHandler{
 		CloudManager: tMgr,
-		Logger:       logPlatformNetwork,
+		Logger:       logPlatformNetwork.Logger,
 		Events:       common.GetSystemAPIEvents(mgr),
 		Kind:         "PlatformNetwork",
 	}
 	r.ReconcilerEventLogger = &common.EventLogger{
 		EventRecorder: mgr.GetEventRecorderFor(PlatformNetworkControllerName),
-		Logger:        logPlatformNetwork}
+		Logger:        logPlatformNetwork.Logger}
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&starlingxv1.PlatformNetwork{}).
 		Complete(r)

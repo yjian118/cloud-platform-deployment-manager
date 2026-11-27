@@ -11,6 +11,7 @@ import (
 	starlingxv1 "github.com/wind-river/cloud-platform-deployment-manager/api/v1"
 	"github.com/wind-river/cloud-platform-deployment-manager/internal/controller/common"
 	cloudManager "github.com/wind-river/cloud-platform-deployment-manager/internal/controller/manager"
+	"github.com/wind-river/cloud-platform-deployment-manager/logger"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -20,7 +21,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-var logHostProfile = log.Log.WithName("controller").WithName("hostprofile")
+var logHostProfile = logger.New(log.Log.WithName("controller").WithName("hostprofile"))
 
 const HostProfileControllerName = "hostprofile-controller"
 
@@ -160,13 +161,13 @@ func (r *HostProfileReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	r.Scheme = mgr.GetScheme()
 	r.ReconcilerErrorHandler = &common.ErrorHandler{
 		CloudManager: tMgr,
-		Logger:       logAddressPool,
+		Logger:       logAddressPool.Logger,
 		Events:       common.GetSystemAPIEvents(mgr),
 		Kind:         "HostProfile",
 	}
 	r.ReconcilerEventLogger = &common.EventLogger{
 		EventRecorder: mgr.GetEventRecorderFor(HostProfileControllerName),
-		Logger:        logHostProfile}
+		Logger:        logHostProfile.Logger}
 
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&starlingxv1.HostProfile{}).

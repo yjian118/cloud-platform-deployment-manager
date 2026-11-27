@@ -17,6 +17,7 @@ import (
 	utils "github.com/wind-river/cloud-platform-deployment-manager/common"
 	"github.com/wind-river/cloud-platform-deployment-manager/internal/controller/common"
 	cloudManager "github.com/wind-river/cloud-platform-deployment-manager/internal/controller/manager"
+	"github.com/wind-river/cloud-platform-deployment-manager/logger"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -27,7 +28,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-var logPtpInstance = log.Log.WithName("controller").WithName("ptpinstance")
+var logPtpInstance = logger.New(log.Log.WithName("controller").WithName("ptpinstance"))
 
 const PtpInstanceControllerName = "ptpinstance-controller"
 
@@ -676,13 +677,13 @@ func (r *PtpInstanceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	r.CloudManager = tMgr
 	r.ReconcilerErrorHandler = &common.ErrorHandler{
 		CloudManager: tMgr,
-		Logger:       logPtpInstance,
+		Logger:       logPtpInstance.Logger,
 		Events:       common.GetSystemAPIEvents(mgr),
 		Kind:         "PtpInstance",
 	}
 	r.ReconcilerEventLogger = &common.EventLogger{
 		EventRecorder: mgr.GetEventRecorderFor(PtpInstanceControllerName),
-		Logger:        logPtpInstance}
+		Logger:        logPtpInstance.Logger}
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&starlingxv1.PtpInstance{}).
 		Complete(r)

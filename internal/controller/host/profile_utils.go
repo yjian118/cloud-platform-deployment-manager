@@ -17,13 +17,14 @@ import (
 	"github.com/samber/lo"
 	starlingxv1 "github.com/wind-river/cloud-platform-deployment-manager/api/v1"
 	"github.com/wind-river/cloud-platform-deployment-manager/internal/controller/common"
+	"github.com/wind-river/cloud-platform-deployment-manager/logger"
 	v1info "github.com/wind-river/cloud-platform-deployment-manager/platform"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-var logProfileUtils = log.Log.WithName("profile-utils")
+var logProfileUtils = logger.New(log.Log.WithName("profile-utils"))
 
 // MergeProfiles invokes the mergo.Merge API with our desired modifiers.
 func MergeProfiles(a, b *starlingxv1.HostProfileSpec) (*starlingxv1.HostProfileSpec, error) {

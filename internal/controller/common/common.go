@@ -418,12 +418,11 @@ func (h *ErrorHandler) HandleReconcilerError(request reconcile.Request, in error
 		resetClient = false
 
 		if !errors.IsNotFound(cause) {
-			// Log the unexpected error once here and requeue explicitly
-			// rather than returning the error, which would cause
-			// controller-runtime to log it a second time.
+			// Return the error so controller-runtime applies its
+			// exponential backoff to unexpected failures.
 			h.Error(in, "an unhandled error occurred", "type", reflect.TypeOf(cause), "request", request)
 			result = RetryTransientError
-			err = nil
+			err = in
 		} else {
 			// A request to the kubernetes client failed because of a missing
 			// resource.  Assume that a user resource is not installed or

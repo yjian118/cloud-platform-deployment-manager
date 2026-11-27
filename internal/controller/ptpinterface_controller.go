@@ -18,6 +18,7 @@ import (
 	utils "github.com/wind-river/cloud-platform-deployment-manager/common"
 	"github.com/wind-river/cloud-platform-deployment-manager/internal/controller/common"
 	cloudManager "github.com/wind-river/cloud-platform-deployment-manager/internal/controller/manager"
+	"github.com/wind-river/cloud-platform-deployment-manager/logger"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -28,7 +29,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-var logPtpInterface = log.Log.WithName("controller").WithName("ptpinterface")
+var logPtpInterface = logger.New(log.Log.WithName("controller").WithName("ptpinterface"))
 
 const PtpInterfaceControllerName = "ptpinterface-controller"
 
@@ -691,13 +692,13 @@ func (r *PtpInterfaceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	r.CloudManager = tMgr
 	r.ReconcilerErrorHandler = &common.ErrorHandler{
 		CloudManager: tMgr,
-		Logger:       logPtpInterface,
+		Logger:       logPtpInterface.Logger,
 		Events:       common.GetSystemAPIEvents(mgr),
 		Kind:         "PtpInterface",
 	}
 	r.ReconcilerEventLogger = &common.EventLogger{
 		EventRecorder: mgr.GetEventRecorderFor(PtpInterfaceControllerName),
-		Logger:        logPtpInterface}
+		Logger:        logPtpInterface.Logger}
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&starlingxv1.PtpInterface{}).
 		Complete(r)

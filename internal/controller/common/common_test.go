@@ -180,7 +180,9 @@ var _ = Describe("Common utils", func() {
 			It("should not record an event for other errors", func() {
 				_, err := testHandler.HandleReconcilerError(request, errpkg.New("unexpected"))
 
-				Expect(err).ToNot(HaveOccurred())
+				// Unhandled errors are returned to controller-runtime so that its
+				// exponential backoff applies to the retry.
+				Expect(err).To(HaveOccurred())
 				Expect(recorder.Events).To(BeEmpty())
 			})
 		})
@@ -210,10 +212,10 @@ var _ = Describe("Common utils", func() {
 			})
 		})
 		Context("when error is some text error", func() {
-			It("should log error and not return it to controller-runtime", func() {
+			It("should log error and return it to controller-runtime for backoff", func() {
 				_, err := testHandler.HandleReconcilerError(request, errpkg.New("unexpected"))
 
-				Expect(err).ToNot(HaveOccurred())
+				Expect(err).To(HaveOccurred())
 				Expect(sink.errorCalled).To(BeTrue())
 				Expect(sink.message).To(Equal("an unhandled error occurred"))
 			})

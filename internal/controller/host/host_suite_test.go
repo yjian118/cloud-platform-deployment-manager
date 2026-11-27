@@ -19,6 +19,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
 	"github.com/gophercloud/gophercloud"
 	th "github.com/gophercloud/gophercloud/testhelper"
@@ -71,7 +72,9 @@ var _ = BeforeSuite(func() {
 
 	k8sManager, err := ctrl.NewManager(cfg, ctrl.Options{
 		Scheme: scheme.Scheme,
-		// m MetricsBindAddress: "0",
+		// Disable the metrics listener so the suite does not depend on port 8080
+		// being free on the machine running the tests.
+		Metrics: metricsserver.Options{BindAddress: "0"},
 	})
 	Expect(err).ToNot(HaveOccurred())
 

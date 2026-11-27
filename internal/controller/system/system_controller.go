@@ -36,6 +36,7 @@ import (
 	utils "github.com/wind-river/cloud-platform-deployment-manager/common"
 	"github.com/wind-river/cloud-platform-deployment-manager/internal/controller/common"
 	cloudManager "github.com/wind-river/cloud-platform-deployment-manager/internal/controller/manager"
+	"github.com/wind-river/cloud-platform-deployment-manager/logger"
 	v1info "github.com/wind-river/cloud-platform-deployment-manager/platform"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -49,7 +50,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-var logSystem = log.Log.WithName("controller").WithName("system")
+var logSystem = logger.New(log.Log.WithName("controller").WithName("system"))
 
 const SystemControllerName = "system-controller"
 const RestAPICertName = "system-restapi-gui-certificate"
@@ -1169,7 +1170,7 @@ func (r *SystemReconciler) ReconcileRequired(instance *starlingxv1.System, spec 
 	logSystem.Info("current is:", "values", current)
 
 	instance.Status.InSync = spec.DeepEqual(current)
-	common.SetInstanceDelta(instance, current, spec, common.SystemProperties, r.Status(), logSystem)
+	common.SetInstanceDelta(instance, current, spec, common.SystemProperties, r.Status(), logSystem.Logger)
 
 	if instance.Status.Reconciled && r.StopAfterInSync() {
 		// Do not process any further changes once we have reached a
@@ -1801,13 +1802,13 @@ func (r *SystemReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	r.CloudManager = tMgr
 	r.ReconcilerErrorHandler = &common.ErrorHandler{
 		CloudManager: tMgr,
-		Logger:       logSystem,
+		Logger:       logSystem.Logger,
 		Events:       common.GetSystemAPIEvents(mgr),
 		Kind:         "System",
 	}
 	r.ReconcilerEventLogger = &common.EventLogger{
 		EventRecorder: mgr.GetEventRecorderFor(SystemControllerName),
-		Logger:        logSystem}
+		Logger:        logSystem.Logger}
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&starlingxv1.System{}).
 		Complete(r)

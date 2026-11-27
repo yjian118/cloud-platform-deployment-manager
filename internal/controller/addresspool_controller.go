@@ -13,6 +13,7 @@ import (
 	utils "github.com/wind-river/cloud-platform-deployment-manager/common"
 	"github.com/wind-river/cloud-platform-deployment-manager/internal/controller/common"
 	cloudManager "github.com/wind-river/cloud-platform-deployment-manager/internal/controller/manager"
+	"github.com/wind-river/cloud-platform-deployment-manager/logger"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -21,7 +22,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-var logAddressPool = log.Log.WithName("controller").WithName("addresspool")
+var logAddressPool = logger.New(log.Log.WithName("controller").WithName("addresspool"))
 
 const AddressPoolControllerName = "addresspool-controller"
 
@@ -205,13 +206,13 @@ func (r *AddressPoolReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	r.CloudManager = tMgr
 	r.ReconcilerErrorHandler = &common.ErrorHandler{
 		CloudManager: tMgr,
-		Logger:       logAddressPool,
+		Logger:       logAddressPool.Logger,
 		Events:       common.GetSystemAPIEvents(mgr),
 		Kind:         "AddressPool",
 	}
 	r.ReconcilerEventLogger = &common.EventLogger{
 		EventRecorder: mgr.GetEventRecorderFor(AddressPoolControllerName),
-		Logger:        logAddressPool}
+		Logger:        logAddressPool.Logger}
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&starlingxv1.AddressPool{}).
 		Complete(r)

@@ -36,7 +36,7 @@ func NewAvailableControllerNodeMonitor(instance *v1.System, required int) *manag
 		MonitorBody: &availableControllerNodeMonitor{
 			required: required,
 		},
-		Logger:   logger,
+		Logger:   logger.Logger,
 		Object:   instance,
 		Interval: DefaultAvailableControllerNodeMonitorInterval,
 	}
@@ -79,7 +79,7 @@ func NewFileSystemResizeMonitor(instance *v1.System) *manager.Monitor {
 	logger := logSystem.WithName("fs-resize-monitor")
 	return &manager.Monitor{
 		MonitorBody: &fileSystemResizeMonitor{},
-		Logger:      logger,
+		Logger:      logger.Logger,
 		Object:      instance,
 		Interval:    DefaultFileSystemResizeMonitorInterval,
 	}
